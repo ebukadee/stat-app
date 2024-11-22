@@ -1,31 +1,3 @@
-// const express = require("express");
-// const axios = require("axios");
-// const cors = require("cors");
-// const app = express();
-// const PORT = 3000;
-
-// app.use(cors());
-
-// // Set up the route for the API proxy
-// app.get("/api/data", async (req, res) => {
-//   try {
-//     // Make the GET request to the external API
-//     const response = await axios.get(
-//       "https://fantasy.premierleague.com/api/bootstrap-static/"
-//     );
-
-//     // Return the data from the external API as the response
-//     res.json(response.data);
-//   } catch (error) {
-//     // Handle any errors from the external API or internal server
-//     res.status(500).json({ error: "Error fetching data" });
-//   }
-// });
-
-// // Start the server
-// app.listen(PORT, () => {
-//   console.log(`Server running on http://localhost:${PORT}`);
-// });
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios"); // Import Axios
