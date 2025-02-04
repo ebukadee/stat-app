@@ -1,40 +1,37 @@
 const express = require("express");
 const cors = require("cors");
-const axios = require("axios"); // Import Axios
+const axios = require("axios");
+const path = require("path");
+
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public")); // Serve static files
+app.use(express.static(path.join(__dirname, "public"))); // Serve static files from the "public" folder
 
-
-app.get("/proxy", async (req, res) => {
-  const targetUrl = req.query.url; // Get the target API URL from the query parameter
-
-  if (!targetUrl) {
-    return res.status(400).json({ error: 'Missing "url" query parameter' });
-  }
-
-  try {
-    const response = await axios.get(targetUrl); // Use Axios to fetch the data
-    res.json(response.data); // Return the API response data
-  } catch (error) {
-    res.status(500).json({
-      error: "Error fetching data",
-      details: error.message,
-    });
-  }
-});
 // Proxy endpoint
 app.get("/proxy", async (req, res) => {
     const targetUrl = req.query.url;
-    if (!targetUrl) return res.status(400).json({ error: 'Missing "url" query parameter' });
+
+    if (!targetUrl) {
+        return res.status(400).json({ error: 'Missing "url" query parameter' });
+    }
 
     try {
-        const response = await axios.get(targetUrl);
+        const response = await axios.get(targetUrl, {
+            headers: {
+                "User-Agent": "Mozilla/5.0", // Some APIs require a user-agent header
+            },
+            timeout: 10000, // 10-second timeout
+        });
         res.json(response.data);
     } catch (error) {
-        res.status(500).json({ error: "Error fetching data", details: error.message });
+        console.error("Proxy error:", error.message);
+        res.status(500).json({
+            error: "Error fetching data",
+            details: error.message,
+        });
     }
 });
 
@@ -42,6 +39,11 @@ app.get("/proxy", async (req, res) => {
 app.get("/", (req, res) => {
     const event = req.query.event || "24"; // Default to GW24
     const league = req.query.league || "2272990"; // Default to League 1
+
+    // Generate gameweek options dynamically
+    const gameweeks = Array.from({ length: 15 }, (_, i) => i + 24)
+        .map(gw => `<option value="${gw}" ${gw == event ? "selected" : ""}>GW${gw}</option>`)
+        .join("");
 
     res.send(`
         <!DOCTYPE html>
@@ -57,9 +59,7 @@ app.get("/", (req, res) => {
                 <div>
                     <label for="event">Gameweek:</label>
                     <select id="event" name="event">
-                        ${Array.from({ length: 15 }, (_, i) => i + 24)
-                            .map(gw => `<option value="${gw}" ${gw == event ? "selected" : ""}>GW${gw}</option>`)
-                            .join("")}
+                        ${gameweeks}
                     </select>
                 </div>
                 <div>
@@ -78,5 +78,16 @@ app.get("/", (req, res) => {
     `);
 });
 
+// Error handling for missing static files
+app.use((req, res, next) => {
+    res.status(404).send("File not found");
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error("Server error:", err.stack);
+    res.status(500).send("Something went wrong!");
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
